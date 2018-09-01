@@ -33,23 +33,21 @@ typedef struct motor_t
 };
 
 motor_t motors[] = {
-    {
-        .PIN_STEP = Pin(2),
-        .PIN_DIR = Pin(5),
-        .PIN_EN = Pin(8),
-        .PIN_RESET_SENSOR = Pin(14),
-        .clearDirection = -1,
-        .reset_hit = 1,
-        .flags = MOTOR_ENABLE_SLEEP,
-        .range = 300000,
-        .position = 0,
-        .target = 300000,
+    {.PIN_STEP = Pin(2),
+     .PIN_DIR = Pin(5),
+     .PIN_EN = Pin(8),
+     .PIN_RESET_SENSOR = Pin(14),
+     .clearDirection = -1,
+     .reset_hit = 1,
+     .flags = MOTOR_ENABLE_SLEEP,
+     .range = 300000,
+     .position = 0,
+     .target = 300000,
 
-        ._speed = 1.0,
-        ._maxSpeed = 20000,
-        ._acceleration = 2000.0,
-        .resetSpeed = 30000
-    }};
+     ._speed = 1.0,
+     ._maxSpeed = 20000,
+     ._acceleration = 2000.0,
+     .resetSpeed = 30000}};
 
 void _compute_speed(motor_t *m)
 {
