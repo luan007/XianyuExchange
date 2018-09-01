@@ -79,7 +79,6 @@ inline bool check_timeout() {
 }
 
 
-
 #define ROUTE(r, m, rs, id) if(rs && incoming_msg.fullMatch(r)) { \
   if(id >= 0) { update_state(STATE_BUSY, id, 0); } \
   incoming_msg.dispatch(r, m); \
@@ -87,12 +86,10 @@ inline bool check_timeout() {
   return; \ 
 }
 
-
 #include "actions.h"
 void parse_msg() {
   ACTIONS
 }
-
 
 inline void preinit() {
   wdt_disable();
