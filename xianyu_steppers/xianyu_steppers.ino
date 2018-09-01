@@ -1,11 +1,21 @@
-#include "motion.h"
+#define MOTOR_X 0
+#define MOTOR_Y 1
+#define MOTOR_Z 2
+#define MOTOR_CLAW_L 3
+#define MOTOR_CLAW_R 4
+#define MOTOR_BELT 5
+#define MOTOR_DOOR 6
+
+#include "modules.h"
 
 void setup() {
   Serial.begin(9600);
+  init_sensors();
   init_motors();
 }
 
 void tick() {
+  tick_sensors();
   tick_motors();
 }
 
@@ -15,9 +25,9 @@ void loop() {
   while (Serial.available()) {
     unsigned char r = Serial.read();
     if (r == 'L') {
-      set_motor_lock(0, 1);
+      enable_motor_flag(motors[0], MOTOR_LOCK)
     } else if (r == 'U') {
-      set_motor_lock(0, 0);
+      disable_motor_flag(motors[0], MOTOR_LOCK)
     }
   }
 }

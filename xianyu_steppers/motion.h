@@ -6,7 +6,9 @@
 #define MOTOR_LOCK 0x04         //RW
 #define MOTOR_ENABLE_SLEEP 0x08 //RW
 #include <Pin.h>                // Include Pin Library
-#define set_motor_lock(i, l) l ? (motors[i].flags |= MOTOR_LOCK) : (motors[i].flags &= ~MOTOR_LOCK)
+
+#define enable_motor_flag(m, f) (m.flags |= f)
+#define disable_motor_flag(m, f) (m.flags &= ~f)
 
 typedef struct motor_t
 {
