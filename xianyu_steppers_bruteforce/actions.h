@@ -12,7 +12,7 @@ void act_init(OSCMessage &msg, int addrOffset) {
 }
 
 void act_forcereset(OSCMessage &msg, int addrOffset) {
-  wdt_enable(WDT2S);
+  wdt_enable(WDTO_2S);
 }
 
 
