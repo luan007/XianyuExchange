@@ -1,11 +1,7 @@
-
-
 #include "motion.h"
-
 
 void setup() {
   Serial.begin(9600);
-
   init_motors();
 }
 
@@ -24,6 +20,4 @@ void loop() {
       set_motor_lock(0, 0);
     }
   }
-
-  
 }
