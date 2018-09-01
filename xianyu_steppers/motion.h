@@ -1,3 +1,6 @@
+#ifndef __MOTION_H__
+#define __MOTION_H__
+
 #define MOTOR_CLEAN 0x01        //R
 #define MOTOR_MOVING 0x02       //R
 #define MOTOR_LOCK 0x04         //RW
@@ -272,3 +275,5 @@ int tick_motors()
   }
   return 0;
 }
+
+#endif
