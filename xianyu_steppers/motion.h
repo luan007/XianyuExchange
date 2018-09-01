@@ -10,6 +10,8 @@
 #define enable_motor_flag(m, f) (m.flags |= f)
 #define disable_motor_flag(m, f) (m.flags &= ~f)
 
+#define check_motor_flag(m, f) (m.flags & f)
+
 typedef struct motor_t
 {
   Pin PIN_STEP;

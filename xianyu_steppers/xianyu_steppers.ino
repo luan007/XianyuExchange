@@ -1,10 +1,10 @@
-#define MOTOR_X 0
-#define MOTOR_Y 1
-#define MOTOR_Z 2
-#define MOTOR_CLAW_L 3
-#define MOTOR_CLAW_R 4
-#define MOTOR_BELT 5
-#define MOTOR_DOOR 6
+#define STEPPER_X 0
+#define STEPPER_Y 1
+#define STEPPER_Z 2
+#define STEPPER_CLAW_L 3
+#define STEPPER_CLAW_R 4
+#define STEPPER_BELT 5
+#define STEPPER_DOOR 6
 
 #include "modules.h"
 
