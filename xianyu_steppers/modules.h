@@ -1,15 +1,21 @@
 #include "motion.h"
 
+#define TODO(q) PLEASE_NOTE(q)
+
 #define CODE_DOOR_STATE 0
 #define CODE_CLAW_STATE 1
 #define CODE_CLAW_GRAB_STATE 2
+#define CODE_LOGICAL_Z_STATE 3
 
 #define UNKNOWN -2
 #define SET_UNKNOWN(q, code) q = -2;
 
 #define CLAW_LAYERS 2 //(equals claw_float height)
+#define CLAW_FLOAT CLAW_LAYERS
 
 #define CLAW_HOLDING_POSITION = 3000;
+
+#define Z_LOGICAL_ERROR_RANGE 300 //+/- 300 is acceptable
 
 typedef struct computed_sensory_t;
 {
@@ -24,12 +30,12 @@ typedef struct computed_sensory_t;
     //---computed sensors
     char xy_lock = 0;   //if z is uncertain or z is too low - lock xy
     char z_lock = 0;    //if xy is moving - do not move z
-    char claw_lock = 0; //if xy is moving - lock claw
+    long z_range = 0;   //we need to limit z-range for safety reasons. i.e, while logical_x, y does not fit (moving)
+    char claw_lock = 0; //when ever xy're moving - lock claw
 
     //claw machanics
     char claw_engaged = -2; //0 no, 1 yes, -2 = invalid
-
-    char claw_grabbed = 0; // = claw_enaged && claw_cargo_touched ;) easing life - trust only 1, 0 = useless
+    char claw_grabbed = -2; // = claw_enaged && claw_cargo_touched ;) easing life - trust only 1, 0 = useless
 
     int xy_logical_x = -2; //-1 = moving, -2 = invalid
     int xy_logical_y = -2; //-1 = moving, -2 = invalid
@@ -37,6 +43,8 @@ typedef struct computed_sensory_t;
 
     char delivery_box_position = -1; //-1 = unknown, 0 = inside, 1 = outside
     char door_state = -2;            //-2 = invalid.. 0 closed (all fully), 1 openned (all fully), -1 - prob moving?
+
+    const int xy_logical_z_map[] = {20000, 15000, 10000, 0}; //too low!!, layer0 target, layer1 target, safe height
 };
 
 computed_sensory_t computed_sensor;
@@ -46,6 +54,59 @@ void tick_sensors()
     //read all sensors
 
     //digitalread everything..
+
+    //compute logical xyz as many relates to them
+    TODO("compute logical x")
+    TODO("compute logical y")
+    if (check_motor_flag(motors[STEPPER_Z], MOTOR_MOVING))
+    {
+        SET_UNKNOWN(computed_sensor.xy_logical_z, CODE_LOGICAL_Z_STATE) //moving & not trustworthy
+    }
+    else if (!check_motor_flag(motors[STEPPER_Z], MOTOR_CLEAN))
+    {
+        SET_UNKNOWN(computed_sensor.xy_logical_z, CODE_LOGICAL_Z_STATE) //moving & not trustworthy
+    }
+    //stopped and clean, wow
+    else
+    {
+        //compute height
+        if (motors[STEPPER_Z].position <= computed_sensor.xy_logical_z_map[CLAW_LAYERS + 1])
+        { //safe flight. (super high)
+            computed_sensor.xy_logical_z = CLAW_FLOAT;
+        }
+        else if (motors[STEPPER_Z].position >= computed_sensor.xy_logical_z_map[0]) //super impossible low
+        {
+            computed_sensor.xy_logical_z = -1;
+        }
+        else
+        {
+            unsigned char _set = -2;
+            //calculate designated position
+            for (unsigned char i = 0; i < CLAW_LAYERS; i++)
+            {
+                if (abs(motors[STEPPER_Z].position - computed_sensor.xy_logical_z_map[i + 1]) < Z_LOGICAL_ERROR_RANGE)
+                {
+                    _set = i;
+                    break;
+                }
+            }
+            computed_sensor.xy_logical_z = _set;
+        }
+    }
+
+    //we need to sanitize motorZ's max range
+    //i.e do not push when you hit something without clawing
+    if (check_motor_flag(motors[STEPPER_X], MOTOR_MOVING) ||
+        check_motor_flag(motors[STEPPER_Y], MOTOR_MOVING))
+    {
+        //xy is moving, for safety we must fully
+        computed_sensor.z_range = computed_sensor.xy_logical_z_map[CLAW_FLOAT];
+        //this is actually not possible as z should be locked already
+    } else if(computed_sensor.xy_logical_x < 0 || computed_sensor.xy_logical_y < 0) {
+        computed_sensor.z_range = computed_sensor.xy_logical_z_map[CLAW_FLOAT];
+    } else if(computed_sensor.s_claw_cargo_touched && computed_sensor.claw_grabbed != 1) {
+        computed_sensor.z_range = motors[STEPPER_Z].position; //do not push down anymore when we touched anything & not grabbed yet
+    }
 
     //compute stepper locks
     computed_sensor.xy_lock = (check_motor_flag(motors[STEPPER_Z], MOTOR_MOVING) ||
@@ -132,7 +193,9 @@ void tick_sensors()
     else if (computed_sensor.claw_enaged == 1)
     {
         computed_sensor.claw_grabbed = 1; //yay fully grabbed
-    } else {
+    }
+    else
+    {
         SET_UNKNOWN(computed_sensor.claw_grabbed, CODE_CLAW_GRAB_STATE) //what?
     }
 

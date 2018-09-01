@@ -173,7 +173,6 @@ int _tick_motor(motor_t *m)
   {
     //sanitize target
     m->target = m->target < 0 ? 0 : (m->target > m->range ? m->range : m->target);
-
     //calculate delta
     m->__delta = m->target - m->position;
 
