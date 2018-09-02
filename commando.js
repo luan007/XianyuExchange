@@ -1,7 +1,10 @@
-const TEST = true;
+const TEST = false;
+const SERIAL = "/dev/wchusb";
+const BAUD = 9600;
 const LOG_RAW_DATA = false;
 const LOG_OUTGOING = true;
 const LOG_INCOMING = true;
+const LOG_INCOMING_STR = false;
 
 var slip = require('node-slip');
 var serial = require('serialport');
@@ -9,6 +12,9 @@ var oscmin = require('osc-min');
 
 var receiver = {
     data: function (input) {
+        if (LOG_INCOMING_STR) {
+            console.log(input.toString());
+        }
         read(input);
     },
     framing: function (input) {
@@ -59,9 +65,11 @@ if (TEST) {
             on_data(new Buffer(b));
         }
     }
+    ready();
 } else {
-    var sp = new serial("/dev/ttySOMETHING", {
-        baudRate: 9600
+    var sp = new serial(SERIAL, {
+        baudRate: BAUD,
+        autoOpen: false
     });
     sp.open((e) => {
         if (e) {
@@ -70,6 +78,7 @@ if (TEST) {
             sp.close();
             return;
         }
+        setTimeout(ready, 2000);
         sp.on("data", on_data);
     });
     __write = (raw) => {
@@ -90,14 +99,33 @@ function read(buf) {
     }
 }
 
-send({
-    address: "/init",
-    args: []
-});
+function ready() {
+    setTimeout(() => {
+        send({
+            address: "/init",
+            args: []
+        });
 
-setTimeout(() => {
-    send({
-        address: "/act_simulate_delay",
-        args: [3000]
-    });
-}, 5000)
+        setTimeout(() => {
+            send({
+                address: "/act_simulate_delay",
+                args: [{
+                    type: "integer",
+                    value: 30000
+                }]
+            });
+
+            function loop() {
+                var q = setTimeout(() => {
+                    clearTimeout(q);
+                    send({
+                        address: "/report",
+                        args: []
+                    });
+                    loop();
+                }, 50)
+            }
+            loop();
+        }, 5000)
+    }, 2000);
+}

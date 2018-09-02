@@ -2,7 +2,6 @@
 #include <OSCMessage.h>
 #include <SLIPEncodedSerial.h>
 
-
 SLIPEncodedSerial SLIPSerial(Serial);
 void parse_msg();
 OSCMessage incoming_msg;
@@ -24,17 +23,18 @@ char ERROR_CODE = 0;
 
 void report_status() {
   OSCMessage outgoing_msg("/state");
-  outgoing_msg.add((char)STATE);
-  outgoing_msg.add((char)FUNCTION);
-  outgoing_msg.add((char)ERROR_CODE);
+  outgoing_msg.add((int32_t)STATE);
+  outgoing_msg.add((int32_t)FUNCTION);
+  outgoing_msg.add((int32_t)ERROR_CODE);
   SLIPSerial.beginPacket();
+//  SLIPSerial.println("REPORT_STATE");
   outgoing_msg.send(SLIPSerial); // send the bytes to the SLIP stream
   SLIPSerial.endPacket(); // mark the end of the OSC Packet
   outgoing_msg.empty();
 }
 
 void update_state(char state, char function, char error_code) {
-  bool change = state != STATE || function != FUNCTION || error_code != ERROR_CODE;
+  bool change = (state != STATE) || (function != FUNCTION) || (error_code != ERROR_CODE);
   if (!change) return;
   STATE = state;
   FUNCTION = function;
@@ -43,15 +43,28 @@ void update_state(char state, char function, char error_code) {
 }
 
 
-
+bool has_data = false;
+bool data_clean = true;
 void keep_alive() {
+  if (!has_data && !data_clean) {
+    data_clean = true;
+    incoming_msg.empty();
+  }
   if (!SLIPSerial.endofPacket() && SLIPSerial.available()) {
     incoming_msg.fill(SLIPSerial.read());
-    if (SLIPSerial.endofPacket()) {
-      if (!incoming_msg.hasError()) {
-        parse_msg();
-      }
-      incoming_msg.empty();
+    has_data = true;
+    data_clean = false;
+  }
+  if (SLIPSerial.endofPacket() && has_data) {
+    has_data = false;
+    if (!incoming_msg.hasError()) {
+//      SLIPSerial.beginPackp90-=et();
+//      SLIPSerial.println("REC");
+//      char addr[100];
+//      incoming_msg.getAddress(addr);
+//      SLIPSerial.println(addr);
+//      SLIPSerial.endPacket();
+      return parse_msg(); //tail recur in case :)
     }
   }
 }
@@ -79,9 +92,9 @@ inline void set_timeout(int t, unsigned char error_code) {
 }
 
 inline void DEAD(int err_code) {
-    update_state(STATE_ERROR, FUNCTION, err_code);
-    _wait_if(true)
-    _end
+  update_state(STATE_ERROR, FUNCTION, err_code);
+  _wait_if(true)
+  _end
 }
 
 inline bool check_timeout() {
@@ -95,14 +108,12 @@ inline bool check_timeout() {
 }
 
 
-
 #define ROUTE(r, m, rs, id) if(rs && incoming_msg.fullMatch(r)) { \
-  if(id > 0) { update_state(STATE_BUSY, id, 0); } \
-  incoming_msg.dispatch(r, m); \
-  if(id > 0) { update_state(STATE_IDLE, 0, 0); } \
-  return; \ 
-}
-
+    if(id > 0) { update_state(STATE_BUSY, id, 0); } \
+    incoming_msg.dispatch(r, m); \
+    if(id > 0) { update_state(STATE_IDLE, 0, 0); } \
+    return; \
+  }
 
 #include "actions.h"
 void parse_msg() {
