@@ -43,11 +43,6 @@ void update_state(char state, char function, char error_code) {
 }
 
 
-#define _wait_if(cond) while(cond) {
-#define _wait_timeout(cond, timeout, code) set_timeout(timeout, code); \
-  while(cond) { check_timeout();
-#define _end keep_alive(); }
-
 
 void keep_alive() {
   if (!SLIPSerial.endofPacket() && SLIPSerial.available()) {
@@ -61,30 +56,53 @@ void keep_alive() {
   }
 }
 
+#define _wait_if(cond) while(cond) {
+#define _wait_timeout(cond, timeout, code) set_timeout(timeout, code); \
+  while(cond) { check_timeout();
+#define _end keep_alive(); }
+
+void _delay(long ms) {
+  long _ms = millis() + ms;
+  _wait_if(millis() < _ms)
+  _end
+}
+
+void _delayMicroseconds(long us) {
+  long _ns = micros() + us;
+  _wait_if(micros() < _ns)
+  _end
+}
+
 inline void set_timeout(int t, unsigned char error_code) {
   err_code = error_code;
   _timeout = t > 0 ? (millis() + t) : -1;
 }
 
+inline void DEAD(int err_code) {
+    update_state(STATE_ERROR, FUNCTION, err_code);
+    _wait_if(true)
+    _end
+}
 
 inline bool check_timeout() {
   if (_timeout == -1) return true;
   if (millis() > _timeout) {
     //dead
-    update_state(STATE_ERROR, FUNCTION, err_code);
-    _wait_if(true)
-    _end
+    DEAD(err_code);
+    //never goes here
     return false;
   }
 }
 
 
+
 #define ROUTE(r, m, rs, id) if(rs && incoming_msg.fullMatch(r)) { \
-  if(id >= 0) { update_state(STATE_BUSY, id, 0); } \
+  if(id > 0) { update_state(STATE_BUSY, id, 0); } \
   incoming_msg.dispatch(r, m); \
-  update_state(STATE_IDLE, 0, 0); \
+  if(id > 0) { update_state(STATE_IDLE, 0, 0); } \
   return; \ 
 }
+
 
 #include "actions.h"
 void parse_msg() {

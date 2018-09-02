@@ -1,0 +1,24 @@
+{
+  "name": "xianyuexchange",
+  "version": "1.0.0",
+  "description": "code for xianyu's exchange machine - mainly stepper control",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/luan007/XianyuExchange.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/luan007/XianyuExchange/issues"
+  },
+  "homepage": "https://github.com/luan007/XianyuExchange#readme",
+  "dependencies": {
+    "node-slip": "0.0.2",
+    "osc-min": "^1.1.1",
+    "serialport": "^7.0.2"
+  }
+}
