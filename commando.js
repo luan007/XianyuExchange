@@ -107,13 +107,19 @@ function ready() {
         });
         setTimeout(() => {
             send({
-                address: "/moveTo",
+                address: "/grab",
                 args: [{
                     type: "integer",
-                    value: 0
+                    value: 3700
                 }, {
                     type: "integer",
-                    value: 10000
+                    value: 11000
+                }, {
+                    type: "integer",
+                    value: 0 
+                }, {
+                    type: "integer",
+                    value: 12600 
                 }]
             });
         }, 3000);

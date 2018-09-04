@@ -2,6 +2,10 @@
 #define ANYTIME true
 #define TEMP false
 
+#define Z_SENSE_M Pin(24)
+
+#define Z_ERROR 200
+
 void act_report(OSCMessage &msg, int addrOffset)
 {
   report_status();
@@ -9,6 +13,9 @@ void act_report(OSCMessage &msg, int addrOffset)
 
 void act_init(OSCMessage &msg, int addrOffset)
 {
+  Z_SENSE_M.setInput();
+  Z_SENSE_M.setPullupOn();
+  
   M_LOCK_ALL();
   M_ACTIVATE(M_CLAW_L);
   M_ACTIVATE(M_CLAW_R);
@@ -23,6 +30,22 @@ void act_init(OSCMessage &msg, int addrOffset)
   M_LOCK_ALL();
   M_ACTIVATE(MOTOR_Z);
   _wait_timeout(!check_motor_flag(motors[MOTOR_Z], MOTOR_CLEAN), 60000, 2)
+  {
+    tick_motors();
+  }
+  _end
+
+  M_LOCK_ALL();
+  M_ACTIVATE(MOTOR_Y);
+  _wait_timeout(!check_motor_flag(motors[MOTOR_Y], MOTOR_CLEAN), 60000, 3)
+  {
+    tick_motors();
+  }
+  _end
+
+  M_LOCK_ALL();
+  M_ACTIVATE(MOTOR_X);
+  _wait_timeout(!check_motor_flag(motors[MOTOR_X], MOTOR_CLEAN), 60000, 4)
   {
     tick_motors();
   }
@@ -43,6 +66,108 @@ void act_moveTo(OSCMessage &msg, int addrOffset)
   }
   _end
 }
+
+
+void act_grab(OSCMessage &msg, int addrOffset)
+{
+  int x = 0;
+  int y = 0;
+  int z = 0;
+  int zref = 0;
+  if (!(msg.isInt(0) && msg.isInt(1) && msg.isInt(2) && msg.isInt(3)))
+  {
+    return DEAD(100);
+  }
+  else
+  {
+    x = msg.getInt(0);
+    y = msg.getInt(1);
+    z = msg.getInt(2);
+    zref = msg.getInt(3);
+  }
+
+
+  //reset claw
+  M_LOCK_ALL();
+  M_ACTIVATE(M_CLAW_L);
+  M_ACTIVATE(M_CLAW_R);
+  _wait_timeout(!(check_motor_flag(motors[M_CLAW_L], MOTOR_CLEAN) && check_motor_flag(motors[M_CLAW_R], MOTOR_CLEAN)), 30000, 1)
+  {
+    tick_motors();
+  }
+  _end
+  M_SLEEP(M_CLAW_L);
+  M_SLEEP(M_CLAW_R);
+
+
+  M_LOCK_ALL();
+  M_ACTIVATE(MOTOR_Z);
+  M_TARGET(MOTOR_Z, 10);
+  _wait_timeout(!M_ARRIVED(MOTOR_Z), 60000, 2)
+  {
+    tick_motors();
+  }
+  _end
+
+  
+  M_LOCK_ALL();
+  M_ACTIVATE(MOTOR_X);
+  M_ACTIVATE(MOTOR_Y);
+  M_TARGET(MOTOR_X, x);
+  M_TARGET(MOTOR_Y, y);
+  _wait_timeout(!M_ARRIVED(MOTOR_Y) || !M_ARRIVED(MOTOR_X), 60000, 3)
+  {
+    tick_motors();
+  }
+  _end
+
+//  return;
+  
+  M_LOCK_ALL();
+  M_ACTIVATE(MOTOR_Z);
+  M_TARGET(MOTOR_Z, zref);
+  _wait_timeout((!M_ARRIVED(MOTOR_Z)) && Z_SENSE_M.getValue(), 60000, 4)
+  {
+    tick_motors();
+  }
+  _end
+  M_TARGET(MOTOR_Z, motors[MOTOR_Z].position);
+  if(Z_SENSE_M.getValue()) {
+    return DEAD(150);
+  }
+
+  if(abs(zref - motors[MOTOR_Z].position) > Z_ERROR) {}
+  {
+    return DEAD(200);
+  }
+
+
+  //reset claw
+  M_LOCK_ALL();
+  M_ACTIVATE(M_CLAW_L);
+  M_ACTIVATE(M_CLAW_R);
+  M_TARGET(M_CLAW_L, 9000);
+  M_TARGET(M_CLAW_R, 9000);
+  _wait_timeout(!M_ARRIVED(M_CLAW_L) || !M_ARRIVED(M_CLAW_R), 30000, 1)
+  {
+    tick_motors();
+  }
+  _end
+  M_SLEEP(M_CLAW_L);
+  M_SLEEP(M_CLAW_R);
+
+
+  M_LOCK_ALL();
+  M_ACTIVATE(MOTOR_Z);
+  M_TARGET(MOTOR_Z, 10);
+  _wait_timeout(!M_ARRIVED(MOTOR_Z), 60000, 2)
+  {
+    tick_motors();
+  }
+  _end
+
+}
+
 
 void act_forcereset(OSCMessage &msg, int addrOffset)
 {
@@ -75,4 +200,5 @@ void act_simulate_delay(OSCMessage &msg, int addrOffset)
   ROUTE("/force_reset", act_forcereset, STATE == STATE_ERROR, TEMP) \
   ROUTE("/init", act_init, STATE == STATE_UNINITIALIZED, 1)         \
   ROUTE("/act_simulate_delay", act_simulate_delay, STATE == STATE_IDLE, 2) \
-  ROUTE("/moveTo", act_moveTo, STATE == STATE_IDLE, 10)         
+  ROUTE("/grab", act_grab, STATE == STATE_IDLE, 3) \
+  ROUTE("/moveTo", act_moveTo, STATE == STATE_IDLE, 10)

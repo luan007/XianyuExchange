@@ -7,6 +7,8 @@
 #define MOTOR_Z 0
 #define M_CLAW_L 1
 #define M_CLAW_R 2
+#define MOTOR_Y 3
+#define MOTOR_X 4
 
 #define MOTOR_CLEAN 0x01        //R
 #define MOTOR_MOVING 0x02       //R
@@ -100,6 +102,42 @@ motor_t motors[] = {
     ._maxSpeed = 8000,
     ._acceleration = 1000.0,
     ._resetSpeed = 1000
+  },
+  
+
+  //Y
+  { .PIN_STEP = Pin(38),
+    .PIN_DIR = Pin(39),
+    .PIN_EN = Pin(40),
+    .PIN_RESET_SENSOR = Pin(33),
+    .clearDirection = -1,
+    .reset_hit = 1,
+    .flags = 0,
+    .range = 11500,
+    .position = 0,
+    .target = 0,
+    ._speed = 1.0,
+    ._maxSpeed = 8000,
+    ._acceleration = 1000.0,
+    ._resetSpeed = 2000
+  },
+  
+
+  //X
+  { .PIN_STEP = Pin(35),
+    .PIN_DIR = Pin(36),
+    .PIN_EN = Pin(37),
+    .PIN_RESET_SENSOR = Pin(32),
+    .clearDirection = -1,
+    .reset_hit = 1,
+    .flags = 0,
+    .range = 11000,
+    .position = 0,
+    .target = 0,
+    ._speed = 1.0,
+    ._maxSpeed = 8000,
+    ._acceleration = 1000.0,
+    ._resetSpeed = 2000
   }
 };
 
