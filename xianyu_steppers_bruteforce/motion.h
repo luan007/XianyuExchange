@@ -45,6 +45,7 @@ typedef struct motor_t
   float _maxSpeed;
   float _acceleration;
   float _resetSpeed;
+  bool no_reset;
   bool invert_en;
 
   float _stepInterval;
@@ -70,7 +71,8 @@ motor_t motors[] = {
     ._speed = 1.0,
     ._maxSpeed = 8000,
     ._acceleration = 3000.0,
-    ._resetSpeed = 2500
+    ._resetSpeed = 2500,
+    .no_reset = false
   },
 
   //L
@@ -87,7 +89,8 @@ motor_t motors[] = {
     ._speed = 1.0,
     ._maxSpeed = 20000,
     ._acceleration = 0,
-    ._resetSpeed = 20000
+    ._resetSpeed = 20000,
+    .no_reset = false
   },
 
   //R
@@ -104,7 +107,8 @@ motor_t motors[] = {
     ._speed = 1.0,
     ._maxSpeed = 20000,
     ._acceleration = 0,
-    ._resetSpeed = 20000
+    ._resetSpeed = 20000,
+    .no_reset = false
   },
 
 
@@ -122,7 +126,8 @@ motor_t motors[] = {
     ._speed = 1.0,
     ._maxSpeed = 8000,
     ._acceleration = 1000.0,
-    ._resetSpeed = 1500
+    ._resetSpeed = 1500,
+    .no_reset = false
   },
 
 
@@ -140,7 +145,8 @@ motor_t motors[] = {
     ._speed = 1.0,
     ._maxSpeed = 8000,
     ._acceleration = 1000.0,
-    ._resetSpeed = 1500
+    ._resetSpeed = 1500,
+    .no_reset = false
   },
 
 
@@ -156,9 +162,10 @@ motor_t motors[] = {
     .position = 0,
     .target = 0,
     ._speed = 1.0,
-    ._maxSpeed = 500,
+    ._maxSpeed = 700,
     ._acceleration = 0,
-    ._resetSpeed = 500,
+    ._resetSpeed = 700,
+    .no_reset = true,
     .invert_en = true
   }
 };
@@ -220,7 +227,7 @@ int _initialize_motor(motor_t *m)
   m->PIN_STEP.setOutput();
   m->PIN_DIR.setOutput();
   m->PIN_EN.setOutput();
-  if (m->PIN_RESET_SENSOR != NULL) {
+  if (!m->no_reset) {
     m->PIN_RESET_SENSOR.setInput();
     m->PIN_RESET_SENSOR.setPullupOn();
   }
@@ -276,7 +283,7 @@ int _tick_motor(motor_t *m)
   char step = 0; //default: no motion
   
   //tick down anyways
-  if (m->PIN_RESET_SENSOR != NULL) {
+  if(!m->no_reset) {
     m->reset_hit = !m->PIN_RESET_SENSOR.getValue();
   }
   if (m->reset_hit)

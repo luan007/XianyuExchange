@@ -112,7 +112,7 @@ void act_readIO(OSCMessage &msg, int addrOffset)
 {
   OSCMessage outgoing_msg("/io");
   int i = 0;
-  while(msg.isInt(i)) {
+  while (msg.isInt(i)) {
     outgoing_msg.add((int32_t)digitalRead(msg.getInt(i++)));
   }
   SLIPSerial.beginPacket();
@@ -129,27 +129,25 @@ void act_init(OSCMessage &msg, int addrOffset)
 
   BELT_SENSE_BACK.setInput();
   BELT_SENSE_BACK.setPullupOn();
-  
+
   BELT_SENSE_FRONT.setInput();
   BELT_SENSE_FRONT.setPullupOn();
-
-  
 
   M_LOCK_ALL();
   M_ACTIVATE(MOTOR_BELT);
   motors[MOTOR_BELT].position = 0;
-  motors[MOTOR_BELT].target = 1000;
+  motors[MOTOR_BELT].target = 200;
   _wait_timeout(!M_ARRIVED(MOTOR_BELT), 60000, 4)
   {
     tick_motors();
   }
   _end
 
-  
+
   M_LOCK_ALL();
   M_ACTIVATE(MOTOR_BELT);
   motors[MOTOR_BELT].position = 0;
-  motors[MOTOR_BELT].target = -1000;
+  motors[MOTOR_BELT].target = -200;
   _wait_timeout(!M_ARRIVED(MOTOR_BELT), 60000, 4)
   {
     tick_motors();
@@ -212,6 +210,37 @@ struct params {
 
 };
 
+void _belt_out() {
+  M_LOCK_ALL();
+  M_ACTIVATE(MOTOR_BELT);
+  motors[MOTOR_BELT].position = 0;
+  motors[MOTOR_BELT].target = -5000;
+  _wait_timeout(!M_ARRIVED(MOTOR_BELT) && (BELT_SENSE_FRONT.getValue() == LOW), 60000, 4)
+  {
+    tick_motors();
+  }
+  _end
+  _delay(50);
+  if (BELT_SENSE_FRONT.getValue() == LOW) {
+    return DEAD(122);
+  }
+}
+
+void _belt_back() {
+  M_LOCK_ALL();
+  M_ACTIVATE(MOTOR_BELT);
+  motors[MOTOR_BELT].position = 0;
+  motors[MOTOR_BELT].target = 5000;
+  _wait_timeout(!M_ARRIVED(MOTOR_BELT) && (BELT_SENSE_BACK.getValue() == HIGH), 60000, 4)
+  {
+    tick_motors();
+  }
+  _end
+  _delay(50);
+  if (BELT_SENSE_BACK.getValue() == HIGH) {
+    return DEAD(122);
+  }
+}
 
 void act_grab(OSCMessage &msg, int addrOffset)
 {
@@ -239,6 +268,7 @@ void act_grab(OSCMessage &msg, int addrOffset)
   }
   _grab_at(p.fromX, p.fromY, p.fromZ == 0 ? p.layer1Z : p.layer2Z);
   _put_to(p.beltX, p.beltY, p.layer1Z);
+  _belt_out();
 }
 
 void act_retract(OSCMessage &msg, int addrOffset)
@@ -261,6 +291,7 @@ void act_retract(OSCMessage &msg, int addrOffset)
   p.bufferY = msg.getInt(i++);
   p.bufferZ = msg.getInt(i++);
 
+  _belt_back();
   _grab_at(p.beltX, p.beltY, p.layer1Z);
   _put_to(p.fromX, p.fromY, p.fromZ == 0 ? p.layer1Z : p.layer2Z);
   if (p.fromZ == 1) {
