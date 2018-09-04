@@ -9,9 +9,39 @@ void act_report(OSCMessage &msg, int addrOffset)
 
 void act_init(OSCMessage &msg, int addrOffset)
 {
-  _delay(1000);
-  //when init is finished, the ROUTE macro will set state to STATE_IDLE
-  //please refer to [guard.h - LINE: 101]
+  M_LOCK_ALL();
+  M_ACTIVATE(M_CLAW_L);
+  M_ACTIVATE(M_CLAW_R);
+  _wait_timeout(!(check_motor_flag(motors[M_CLAW_L], MOTOR_CLEAN) && check_motor_flag(motors[M_CLAW_R], MOTOR_CLEAN)), 30000, 1)
+  {
+    tick_motors();
+  }
+  _end
+  M_SLEEP(M_CLAW_L);
+  M_SLEEP(M_CLAW_R);
+
+  M_LOCK_ALL();
+  M_ACTIVATE(MOTOR_Z);
+  _wait_timeout(!check_motor_flag(motors[MOTOR_Z], MOTOR_CLEAN), 60000, 2)
+  {
+    tick_motors();
+  }
+  _end
+}
+
+void act_moveTo(OSCMessage &msg, int addrOffset)
+{
+  M_LOCK_ALL();
+  if (msg.isInt(0) && msg.isInt(1)) //check method parameter
+  {
+    M_ACTIVATE(msg.getInt(0));
+    M_TARGET(msg.getInt(0), msg.getInt(1));
+    _wait_timeout(!M_ARRIVED(msg.getInt(0)), 60000, 2)
+    {
+      tick_motors();
+    }
+  }
+  _end
 }
 
 void act_forcereset(OSCMessage &msg, int addrOffset)
@@ -44,4 +74,5 @@ void act_simulate_delay(OSCMessage &msg, int addrOffset)
   ROUTE("/report", act_report, ANYTIME, TEMP)                       \
   ROUTE("/force_reset", act_forcereset, STATE == STATE_ERROR, TEMP) \
   ROUTE("/init", act_init, STATE == STATE_UNINITIALIZED, 1)         \
-  ROUTE("/act_simulate_delay", act_simulate_delay, STATE == STATE_IDLE, 2)
+  ROUTE("/act_simulate_delay", act_simulate_delay, STATE == STATE_IDLE, 2) \
+  ROUTE("/moveTo", act_moveTo, STATE == STATE_IDLE, 10)         

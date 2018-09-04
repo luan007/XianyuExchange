@@ -2,13 +2,14 @@
 #include <OSCMessage.h>
 #include <SLIPEncodedSerial.h>
 
+#include "motion.h"
+
 SLIPEncodedSerial SLIPSerial(Serial);
 void parse_msg();
 OSCMessage incoming_msg;
 
 long _timeout = -1;
 unsigned char err_code;
-
 
 #define STATE_IDLE 0
 #define STATE_BUSY 1
@@ -123,6 +124,7 @@ void parse_msg() {
 inline void preinit() {
   wdt_disable();
   SLIPSerial.begin(9600);
+  init_motors();
   delay(100);
 }
 

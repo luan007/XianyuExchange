@@ -1,5 +1,5 @@
 const TEST = false;
-const SERIAL = "/dev/wchusb";
+const SERIAL = "/dev/cu.wchusbserial1410";
 const BAUD = 9600;
 const LOG_RAW_DATA = false;
 const LOG_OUTGOING = true;
@@ -105,27 +105,38 @@ function ready() {
             address: "/init",
             args: []
         });
-
         setTimeout(() => {
             send({
-                address: "/act_simulate_delay",
+                address: "/moveTo",
                 args: [{
                     type: "integer",
-                    value: 30000
+                    value: 0
+                }, {
+                    type: "integer",
+                    value: 10000
                 }]
             });
+        }, 3000);
+        // setTimeout(() => {
+        //     send({
+        //         address: "/act_simulate_delay",
+        //         args: [{
+        //             type: "integer",
+        //             value: 30000
+        //         }]
+        //     });
 
-            function loop() {
-                var q = setTimeout(() => {
-                    clearTimeout(q);
-                    send({
-                        address: "/report",
-                        args: []
-                    });
-                    loop();
-                }, 50)
-            }
-            loop();
-        }, 5000)
+        //     function loop() {
+        //         var q = setTimeout(() => {
+        //             clearTimeout(q);
+        //             send({
+        //                 address: "/report",
+        //                 args: []
+        //             });
+        //             loop();
+        //         }, 50)
+        //     }
+        //     loop();
+        // }, 5000)
     }, 2000);
 }
