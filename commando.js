@@ -105,21 +105,43 @@ function ready() {
             address: "/init",
             args: []
         });
+
+        /**
+         * 
+struct params {
+
+  int layer1Z;
+  int layer2Z;
+
+  int fromX;
+  int fromY;
+  int fromZ;
+
+  int beltX;
+  int beltY;
+
+  int bufferX;
+  int bufferY;
+  int bufferL;
+
+};
+
+         */
         setTimeout(() => {
             send({
                 address: "/grab",
                 args: [{
                     type: "integer",
-                    value: 3700
+                    value: 170
                 }, {
                     type: "integer",
-                    value: 11000
+                    value: 30
                 }, {
                     type: "integer",
-                    value: 0 
+                    value: 0
                 }, {
                     type: "integer",
-                    value: 12600 
+                    value: 12800
                 }]
             });
         }, 3000);

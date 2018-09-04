@@ -67,7 +67,7 @@ motor_t motors[] = {
     ._speed = 1.0,
     ._maxSpeed = 8000,
     ._acceleration = 1000.0,
-    ._resetSpeed = 1000
+    ._resetSpeed = 1500
   },
 
   //L
@@ -119,7 +119,7 @@ motor_t motors[] = {
     ._speed = 1.0,
     ._maxSpeed = 8000,
     ._acceleration = 1000.0,
-    ._resetSpeed = 2000
+    ._resetSpeed = 1500
   },
   
 
@@ -137,7 +137,7 @@ motor_t motors[] = {
     ._speed = 1.0,
     ._maxSpeed = 8000,
     ._acceleration = 1000.0,
-    ._resetSpeed = 2000
+    ._resetSpeed = 1500
   }
 };
 

@@ -3,8 +3,102 @@
 #define TEMP false
 
 #define Z_SENSE_M Pin(24)
+#define Z_ERROR 500
 
-#define Z_ERROR 200
+
+inline void _reset_claws() {
+  //reset claw
+  M_LOCK_ALL();
+  M_ACTIVATE(M_CLAW_L);
+  M_ACTIVATE(M_CLAW_R);
+  disable_motor_flag(M_CLAW_L, MOTOR_CLEAN);
+  disable_motor_flag(M_CLAW_R, MOTOR_CLEAN);
+  _wait_timeout(!(check_motor_flag(motors[M_CLAW_L], MOTOR_CLEAN) && check_motor_flag(motors[M_CLAW_R], MOTOR_CLEAN)), 30000, 1)
+  {
+    tick_motors();
+  }
+  _end
+  M_SLEEP(M_CLAW_L);
+  M_SLEEP(M_CLAW_R);
+}
+
+inline void _close_claws() {
+  M_LOCK_ALL();
+  M_ACTIVATE(M_CLAW_L);
+  M_ACTIVATE(M_CLAW_R);
+  M_TARGET(M_CLAW_L, 9000);
+  M_TARGET(M_CLAW_R, 9000);
+  _wait_timeout(!M_ARRIVED(M_CLAW_L) || !M_ARRIVED(M_CLAW_R), 30000, 1)
+  {
+    tick_motors();
+  }
+  _end
+  M_SLEEP(M_CLAW_L);
+  M_SLEEP(M_CLAW_R);
+}
+
+inline void _lift_z() {
+  M_LOCK_ALL();
+  M_ACTIVATE(MOTOR_Z);
+  M_TARGET(MOTOR_Z, 10);
+  _wait_timeout(!M_ARRIVED(MOTOR_Z), 60000, 2)
+  {
+    tick_motors();
+  }
+  _end
+}
+
+inline void _lower_z(int zref) {
+  M_LOCK_ALL();
+  M_ACTIVATE(MOTOR_Z);
+  M_TARGET(MOTOR_Z, zref);
+  _wait_timeout((!M_ARRIVED(MOTOR_Z)) && Z_SENSE_M.getValue(), 60000, 4)
+  {
+    tick_motors();
+  }
+  _end
+  M_TARGET(MOTOR_Z, motors[MOTOR_Z].position);
+  if (Z_SENSE_M.getValue()) {
+    return DEAD(150);
+  }
+
+  if (abs(zref - motors[MOTOR_Z].position) > Z_ERROR)
+  {
+    return DEAD(200);
+  }
+}
+
+inline void _move_to(int x, int y) {
+  M_LOCK_ALL();
+  M_ACTIVATE(MOTOR_X);
+  M_ACTIVATE(MOTOR_Y);
+  M_TARGET(MOTOR_X, x);
+  M_TARGET(MOTOR_Y, y);
+  _wait_timeout(!M_ARRIVED(MOTOR_Y) || !M_ARRIVED(MOTOR_X), 60000, 3)
+  {
+    tick_motors();
+  }
+  _end
+}
+
+inline int _grab_at(int x, int y, int z, int zref) {
+  _reset_claws();
+  _lift_z();
+  _move_to(x, y);
+  _lower_z(zref);
+  _close_claws();
+  _lift_z();
+}
+
+inline int _put_to(int x, int y, int z, int zref) {
+  _lift_z();
+  _move_to(x, y);
+  _lower_z(zref);
+  _reset_claws();
+  _lift_z();
+}
+
+
 
 void act_report(OSCMessage &msg, int addrOffset)
 {
@@ -15,7 +109,7 @@ void act_init(OSCMessage &msg, int addrOffset)
 {
   Z_SENSE_M.setInput();
   Z_SENSE_M.setPullupOn();
-  
+
   M_LOCK_ALL();
   M_ACTIVATE(M_CLAW_L);
   M_ACTIVATE(M_CLAW_R);
@@ -68,104 +162,39 @@ void act_moveTo(OSCMessage &msg, int addrOffset)
 }
 
 
+struct params {
+
+  int layer1Z;
+  int layer2Z;
+
+  int fromX;
+  int fromY;
+  int fromZ;
+
+  int beltX;
+  int beltY;
+
+  int bufferX;
+  int bufferY;
+  int bufferL;
+
+};
+
+
 void act_grab(OSCMessage &msg, int addrOffset)
 {
-  int x = 0;
-  int y = 0;
-  int z = 0;
-  int zref = 0;
-  if (!(msg.isInt(0) && msg.isInt(1) && msg.isInt(2) && msg.isInt(3)))
-  {
-    return DEAD(100);
+
+  params p;
+  for (int i = 0; i < 10; i++) {
+    if (!msg.isInt(i)) {
+      return DEAD(100);
+    }
+    else {
+      p[i] = msg.getInt(i);  
+    }
   }
-  else
-  {
-    x = msg.getInt(0);
-    y = msg.getInt(1);
-    z = msg.getInt(2);
-    zref = msg.getInt(3);
-  }
-
-
-  //reset claw
-  M_LOCK_ALL();
-  M_ACTIVATE(M_CLAW_L);
-  M_ACTIVATE(M_CLAW_R);
-  _wait_timeout(!(check_motor_flag(motors[M_CLAW_L], MOTOR_CLEAN) && check_motor_flag(motors[M_CLAW_R], MOTOR_CLEAN)), 30000, 1)
-  {
-    tick_motors();
-  }
-  _end
-  M_SLEEP(M_CLAW_L);
-  M_SLEEP(M_CLAW_R);
-
-
-  M_LOCK_ALL();
-  M_ACTIVATE(MOTOR_Z);
-  M_TARGET(MOTOR_Z, 10);
-  _wait_timeout(!M_ARRIVED(MOTOR_Z), 60000, 2)
-  {
-    tick_motors();
-  }
-  _end
-
-  
-  M_LOCK_ALL();
-  M_ACTIVATE(MOTOR_X);
-  M_ACTIVATE(MOTOR_Y);
-  M_TARGET(MOTOR_X, x);
-  M_TARGET(MOTOR_Y, y);
-  _wait_timeout(!M_ARRIVED(MOTOR_Y) || !M_ARRIVED(MOTOR_X), 60000, 3)
-  {
-    tick_motors();
-  }
-  _end
-
-//  return;
-  
-  M_LOCK_ALL();
-  M_ACTIVATE(MOTOR_Z);
-  M_TARGET(MOTOR_Z, zref);
-  _wait_timeout((!M_ARRIVED(MOTOR_Z)) && Z_SENSE_M.getValue(), 60000, 4)
-  {
-    tick_motors();
-  }
-  _end
-  M_TARGET(MOTOR_Z, motors[MOTOR_Z].position);
-  if(Z_SENSE_M.getValue()) {
-    return DEAD(150);
-  }
-
-  if(abs(zref - motors[MOTOR_Z].position) > Z_ERROR) {}
-  {
-    return DEAD(200);
-  }
-
-
-  //reset claw
-  M_LOCK_ALL();
-  M_ACTIVATE(M_CLAW_L);
-  M_ACTIVATE(M_CLAW_R);
-  M_TARGET(M_CLAW_L, 9000);
-  M_TARGET(M_CLAW_R, 9000);
-  _wait_timeout(!M_ARRIVED(M_CLAW_L) || !M_ARRIVED(M_CLAW_R), 30000, 1)
-  {
-    tick_motors();
-  }
-  _end
-  M_SLEEP(M_CLAW_L);
-  M_SLEEP(M_CLAW_R);
-
-
-  M_LOCK_ALL();
-  M_ACTIVATE(MOTOR_Z);
-  M_TARGET(MOTOR_Z, 10);
-  _wait_timeout(!M_ARRIVED(MOTOR_Z), 60000, 2)
-  {
-    tick_motors();
-  }
-  _end
-
+  _grab_at(p.fromX, p.fromY, p.fromZ, p.fromZ == 0 ? params.layer1Z : params.layer2Z);
+  _put_to(p.beltX, p.beltX, 0, params.layer1Z);
 }
 
 
