@@ -104,11 +104,11 @@ void setup() {
   stepperF.setMaxSpeed(2000);
   stepperF.setAcceleration(700);
 
-  stepperLG.setMaxSpeed(2000);
-  stepperLG.setAcceleration(700);
+  stepperLG.setMaxSpeed(20000);
+  stepperLG.setAcceleration(20000);
 
-  stepperRG.setMaxSpeed(2000);
-  stepperRG.setAcceleration(700);
+  stepperRG.setMaxSpeed(20000);
+  stepperRG.setAcceleration(20000);
 }
 
 int targetX = 0;

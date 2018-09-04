@@ -2,6 +2,8 @@
 #ifndef __MOTION_H__
 #define __MOTION_H__
 
+#define _SPEED_SKIP 2
+
 #define GND(p) pinMode(p, OUTPUT); digitalWrite(p, LOW);
 
 #define MOTOR_Z 0
@@ -54,6 +56,9 @@ typedef struct motor_t
 
   unsigned char __step_hl;
 
+  unsigned char __skipped;
+  unsigned char __compute_speed_marker;
+
 };
 
 motor_t motors[] = {
@@ -69,9 +74,9 @@ motor_t motors[] = {
     .position = 0,
     .target = 10000,
     ._speed = 1.0,
-    ._maxSpeed = 8000,
-    ._acceleration = 3000.0,
-    ._resetSpeed = 2500,
+    ._maxSpeed = 9000,
+    ._acceleration = 3500,
+    ._resetSpeed = 9000,
     .no_reset = false
   },
 
@@ -83,7 +88,7 @@ motor_t motors[] = {
     .clearDirection = -1,
     .reset_hit = 1,
     .flags = 0,
-    .range = 9000,
+    .range = 2250,
     .position = 0,
     .target = 0,
     ._speed = 1.0,
@@ -101,7 +106,7 @@ motor_t motors[] = {
     .clearDirection = -1,
     .reset_hit = 1,
     .flags = 0,
-    .range = 9000,
+    .range = 2250,
     .position = 0,
     .target = 0,
     ._speed = 1.0,
@@ -124,9 +129,9 @@ motor_t motors[] = {
     .position = 0,
     .target = 0,
     ._speed = 1.0,
-    ._maxSpeed = 8000,
-    ._acceleration = 1000.0,
-    ._resetSpeed = 1500,
+    ._maxSpeed = 5000,
+    ._acceleration = 2200.0,
+    ._resetSpeed = 1200,
     .no_reset = false
   },
 
@@ -143,15 +148,16 @@ motor_t motors[] = {
     .position = 0,
     .target = 0,
     ._speed = 1.0,
-    ._maxSpeed = 8000,
-    ._acceleration = 1000.0,
-    ._resetSpeed = 1500,
+    ._maxSpeed = 5000,
+    ._acceleration = 2200.0,
+    ._resetSpeed = 1200,
     .no_reset = false
   },
 
 
   //BELT
-  { .PIN_STEP = Pin(44),
+  {
+    .PIN_STEP = Pin(44),
     .PIN_DIR = Pin(45),
     .PIN_EN = Pin(46),
     .PIN_RESET_SENSOR = NULL,
@@ -162,16 +168,16 @@ motor_t motors[] = {
     .position = 0,
     .target = 0,
     ._speed = 1.0,
-    ._maxSpeed = 700,
+    ._maxSpeed = 900,
     ._acceleration = 0,
-    ._resetSpeed = 700,
+    ._resetSpeed = 900,
     .no_reset = true,
     .invert_en = true
   }
 };
 
 inline void sanitize_target(motor_t *m) {
-  if(m->range != 0) {
+  if (m->range != 0) {
     m->target = m->target < 0 ? 0 : (m->target > m->range ? m->range : m->target);
   }
 }
@@ -227,13 +233,15 @@ int _initialize_motor(motor_t *m)
   m->PIN_STEP.setOutput();
   m->PIN_DIR.setOutput();
   m->PIN_EN.setOutput();
+  m->__skipped = 0;
+  m->__compute_speed_marker = 0;
   if (!m->no_reset) {
     m->PIN_RESET_SENSOR.setInput();
     m->PIN_RESET_SENSOR.setPullupOn();
   }
   m->PIN_STEP.setLow();
   m->PIN_DIR.setLow();
-  if(!m->invert_en) {
+  if (!m->invert_en) {
     m->PIN_EN.setHigh();
   } else {
     m->PIN_EN.setLow();
@@ -279,23 +287,25 @@ void _log_motor(int index, int milli)
 //danger - this should not be called directly
 int _tick_motor(motor_t *m)
 {
+  m->__skipped = 0;
   int ret = 0;
   char step = 0; //default: no motion
-  
+
   //tick down anyways
-  if(!m->no_reset) {
+  if (!m->no_reset) {
     m->reset_hit = !m->PIN_RESET_SENSOR.getValue();
   }
   if (m->reset_hit)
   {
     //lets reset everything
-    m->__step_hl = 0;
+    //    m->__step_hl = 0;
     //ensure we have low here
-    m->PIN_STEP = m->__step_hl; //tick
+    //    m->PIN_STEP = m->__step_hl; //tick
 
     //good we're at reset position
     m->flags |= MOTOR_CLEAN; //clean yay
     m->position = 0;         //current pos = 0
+    m->_speed = 0;
   }
 
   //motor clean (reset)?
@@ -325,9 +335,10 @@ int _tick_motor(motor_t *m)
   if (m->flags & MOTOR_LOCK)
   {
     ret = -2;
-    m->_speed = 1.0;
-    m->_stepInterval = 0;
+    m->_speed = 0;
+    m->_stepInterval = 10;
     step = 0;
+    m->__skipped = 1;
   }
 
   if (step != 0)
@@ -346,8 +357,10 @@ int _tick_motor(motor_t *m)
     //    _need_reset ? (m->_reset_tick_interval = _tick_interval) : (m->_tick_interval = _tick_interval) ;
     if (time > m->_lastStepTime + m->_stepInterval)
     {
-      if (!_need_reset)
+      m->__compute_speed_marker++;
+      if (!_need_reset && m->__compute_speed_marker > _SPEED_SKIP)
       {
+        //m->__compute_speed_marker = 0;
         _compute_speed(m);
       }
       m->_lastStepTime = time;
@@ -417,13 +430,14 @@ int tick_motors()
 {
   for (int i = 0; i < __motor_len; i++)
   {
+    if (motors[i].__skipped) continue;
     _tick_motor(&motors[i]);
   }
   return 0;
 }
 
 #define M_LOCK_ALL() set_flags_to_all_motors(1, MOTOR_LOCK);
-#define M_ACTIVATE(x) disable_motor_flag(motors[x], MOTOR_LOCK);
-#define M_LOCK(x) enable_motor_flag(motors[x], MOTOR_LOCK);
+#define M_ACTIVATE(x) disable_motor_flag(motors[x], MOTOR_LOCK); motors[x].__skipped = 0;
+#define M_LOCK(x) enable_motor_flag(motors[x], MOTOR_LOCK); motors[x]._speed = 0;
 
 #endif

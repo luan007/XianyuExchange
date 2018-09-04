@@ -93,6 +93,15 @@ inline int _grab_at(int x, int y, int zref) {
   _lower_z(zref);
   _close_claws();
   _lift_z(SAFE_HEIGHT);
+
+  M_ACTIVATE(MOTOR_Z);
+  motors[MOTOR_Z]._resetSpeed = 300;
+  disable_motor_flag(motors[MOTOR_Z], MOTOR_CLEAN);
+  _wait_timeout(!check_motor_flag(motors[MOTOR_Z], MOTOR_CLEAN), 60000, 3)
+  {
+    tick_motors();
+  }
+  _end
 }
 
 inline int _put_to(int x, int y, int zref) {
@@ -299,7 +308,6 @@ void act_retract(OSCMessage &msg, int addrOffset)
     _put_to(p.fromX, p.fromY, p.layer1Z);
   }
 }
-
 
 void act_forcereset(OSCMessage &msg, int addrOffset)
 {
