@@ -1,11 +1,13 @@
 const TEST = false;
 const SERIAL = "/dev/cu.wchusbserial1410";
-const BAUD = 9600;
+const BAUD = 115200;
 const LOG_RAW_DATA = false;
 const LOG_OUTGOING = true;
 const LOG_INCOMING = true;
 const LOG_INCOMING_STR = false;
 
+const rl = require('readline');
+var _if = rl.createInterface(process.stdin, process.stdout);
 var slip = require('node-slip');
 var serial = require('serialport');
 var oscmin = require('osc-min');
@@ -99,72 +101,148 @@ function read(buf) {
     }
 }
 
-function ready() {
-    setTimeout(() => {
+
+const Calibration = {
+    layer1Z: 12800,
+    layer2Z: 24700,
+    beltX: 3700,
+    beltY: 11000,
+    bufferX: 3700,
+    bufferY: 30,
+    bufferZ: 24700
+};
+
+
+const Board = {
+    Z_SENSE_M: 24,
+    BELT_EN: 46
+};
+
+_if.on('line', (ln) => {
+    if (ln == 'report') {
+        send({
+            address: "/report",
+            args: []
+        });
+    }
+    if (ln == 'io') {
+        send({
+            address: "/readIO",
+            args: [{
+                type: "integer",
+                value: Board.Z_SENSE_M
+            },{
+                type: "integer",
+                value: Board.BELT_EN
+            }]
+        });
+    }
+    if (ln == 'init') {
         send({
             address: "/init",
             args: []
         });
+    }
+    if (ln == 'grab') {
+        send({
+            address: "/grab",
+            args: [{
+                type: "integer",
+                value: Calibration.layer1Z
+            }, {
+                type: "integer",
+                value: Calibration.layer2Z
+            }, {
+                type: "integer",
+                value: 170 //fromx
+            }, {
+                type: "integer",
+                value: 30 //fromy
+            }, {
+                type: "integer",
+                value: 1 //fromLayer
+            }, {
+                type: "integer",
+                value: Calibration.beltX //belt
+            }, {
+                type: "integer",
+                value: Calibration.beltY //belt
+            }, {
+                type: "integer",
+                value: Calibration.bufferX
+            }, {
+                type: "integer",
+                value: Calibration.bufferY
+            }, {
+                type: "integer",
+                value: Calibration.bufferZ
+            }]
+        });
+    }
+    if (ln == 'back') {
+        send({
+            address: "/retract",
+            args: [{
+                type: "integer",
+                value: Calibration.layer1Z
+            }, {
+                type: "integer",
+                value: Calibration.layer2Z
+            }, {
+                type: "integer",
+                value: 170 //fromx
+            }, {
+                type: "integer",
+                value: 30 //fromy
+            }, {
+                type: "integer",
+                value: 1 //fromLayer
+            }, {
+                type: "integer",
+                value: Calibration.beltX //belt
+            }, {
+                type: "integer",
+                value: Calibration.beltY //belt
+            }, {
+                type: "integer",
+                value: Calibration.bufferX
+            }, {
+                type: "integer",
+                value: Calibration.bufferY
+            }, {
+                type: "integer",
+                value: Calibration.bufferZ
+            }]
+        });
+    }
+});
+function ready() {
+    console.log('ready');
+    // setTimeout(() => {
 
-        /**
-         * 
+    /**
+     * 
 struct params {
 
-  int layer1Z;
-  int layer2Z;
+int layer1Z;
+int layer2Z;
 
-  int fromX;
-  int fromY;
-  int fromZ;
+int fromX;
+int fromY;
+int fromZ;
 
-  int beltX;
-  int beltY;
+int beltX;
+int beltY;
 
-  int bufferX;
-  int bufferY;
-  int bufferL;
+int bufferX;
+int bufferY;
+int bufferZ;
 
 };
 
-         */
-        setTimeout(() => {
-            send({
-                address: "/grab",
-                args: [{
-                    type: "integer",
-                    value: 170
-                }, {
-                    type: "integer",
-                    value: 30
-                }, {
-                    type: "integer",
-                    value: 0
-                }, {
-                    type: "integer",
-                    value: 12800
-                }]
-            });
-        }, 3000);
-        // setTimeout(() => {
-        //     send({
-        //         address: "/act_simulate_delay",
-        //         args: [{
-        //             type: "integer",
-        //             value: 30000
-        //         }]
-        //     });
+//      */
+    //     setTimeout(() => {
 
-        //     function loop() {
-        //         var q = setTimeout(() => {
-        //             clearTimeout(q);
-        //             send({
-        //                 address: "/report",
-        //                 args: []
-        //             });
-        //             loop();
-        //         }, 50)
-        //     }
-        //     loop();
-        // }, 5000)
-    }, 2000);
+    //     }, 3000);
+    // }, 2000);
 }

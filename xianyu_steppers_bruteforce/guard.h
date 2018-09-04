@@ -9,16 +9,16 @@ void parse_msg();
 OSCMessage incoming_msg;
 
 long _timeout = -1;
-unsigned char err_code;
+int32_t err_code;
 
 #define STATE_IDLE 0
 #define STATE_BUSY 1
 #define STATE_ERROR -2
 #define STATE_UNINITIALIZED -1
 
-char STATE = STATE_UNINITIALIZED; //not initialized
-char FUNCTION = 0; //current function (none)
-char ERROR_CODE = 0;
+int32_t STATE = STATE_UNINITIALIZED; //not initialized
+int32_t FUNCTION = 0; //current function (none)
+int32_t ERROR_CODE = 0;
 //other stuff
 
 
@@ -34,7 +34,7 @@ void report_status() {
   outgoing_msg.empty();
 }
 
-void update_state(char state, char function, char error_code) {
+void update_state(int32_t state, int32_t function, int32_t error_code) {
   bool change = (state != STATE) || (function != FUNCTION) || (error_code != ERROR_CODE);
   if (!change) return;
   STATE = state;
@@ -87,7 +87,7 @@ void _delayMicroseconds(long us) {
   _end
 }
 
-inline void set_timeout(int t, unsigned char error_code) {
+inline void set_timeout(int t, int error_code) {
   err_code = error_code;
   _timeout = t > 0 ? (millis() + t) : -1;
 }
@@ -123,9 +123,8 @@ void parse_msg() {
 
 inline void preinit() {
   wdt_disable();
-  SLIPSerial.begin(9600);
+  SLIPSerial.begin(115200);
   init_motors();
-  delay(100);
 }
 
 
