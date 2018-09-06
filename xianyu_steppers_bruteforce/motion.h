@@ -74,9 +74,9 @@ motor_t motors[] = {
     .position = 0,
     .target = 10000,
     ._speed = 1.0,
-    ._maxSpeed = 9000,
-    ._acceleration = 3500,
-    ._resetSpeed = 9000,
+    ._maxSpeed = 7200,
+    ._acceleration = 3800,
+    ._resetSpeed = 6500,
     .no_reset = false
   },
 
